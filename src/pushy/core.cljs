@@ -10,14 +10,6 @@
 (defn- on-click [funk]
   (events/listen js/document "click" funk))
 
-(defn- recur-href
-  "Traverses up the DOM tree and returns the first node that contains a href attr"
-  [target]
-  (if (.-href target)
-    target
-    (when (.-parentNode target)
-      (recur-href (.-parentNode target)))))
-
 (defn- update-history! [h]
   (doto h
     (.setUseFragment false)
@@ -73,9 +65,10 @@
     * match-fn: the function used to check if a particular route exists
     * identity-fn: (optional) extract the route from value returned by match-fn"
   [dispatch-fn match-fn &
-   {:keys [processable-url? identity-fn]
-    :or {processable-url? processable-url?
-         identity-fn identity}}]
+   {:keys [processable-url? identity-fn prevent-default-when-no-match?]
+    :or   {processable-url?               processable-url?
+           identity-fn                    identity
+           prevent-default-when-no-match? (constantly false)}}]
 
   (let [history (new-history)
         event-keys (atom nil)]
@@ -110,7 +103,7 @@
         (swap! event-keys conj
                (on-click
                 (fn [e]
-                  (when-let [el (recur-href (-> e .-target))]
+                  (when-let [el (some-> e .-target (.closest "a"))]
                     (let [uri (.parse Uri (.-href el))]
                       ;; Proceed if `identity-fn` returns a value and
                       ;; the user did not trigger the event via one of the
@@ -129,12 +122,16 @@
                                  ;; Only dispatch on left button click
                                  (= 0 (.-button e)))
                         (let [next-token (get-token-from-uri uri)]
-                          (when (identity-fn (match-fn next-token))
+                          (if (identity-fn (match-fn next-token))
                             ;; Dispatch!
-                            (if-let [title (-> el .-title)]
-                              (set-token! this next-token title)
-                              (set-token! this next-token))
-                            (.preventDefault e)))))))))
+                            (do
+                              (if-let [title (-> el .-title)]
+                                (set-token! this next-token title)
+                                (set-token! this next-token))
+                              (.preventDefault e))
+
+                            (when (prevent-default-when-no-match? next-token)
+                              (.preventDefault e))))))))))
         nil)
 
       (stop! [this]
