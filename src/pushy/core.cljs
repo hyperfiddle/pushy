@@ -120,9 +120,12 @@
                           (if (identity-fn (match-fn next-token))
                             ;; Dispatch!
                             (do
-                              (if-let [title (-> el .-title)]
-                                (set-token! this next-token title)
-                                (set-token! this next-token))
+                              (let [token-effect! (if (-> el .-dataset.pushyReplaceState) ; [:a {:data-pushy-replace-state true}]
+                                                    replace-token!
+                                                    set-token!)]
+                                (if-let [title (-> el .-title)]
+                                  (token-effect! this next-token title)
+                                  (token-effect! this next-token)))
                               (.preventDefault e))
 
                             (when (prevent-default-when-no-match? next-token)
