@@ -66,9 +66,9 @@
     * identity-fn: (optional) extract the route from value returned by match-fn"
   [dispatch-fn match-fn &
    {:keys [processable-url? identity-fn prevent-default-when-no-match?]
-    :or   {processable-url?               processable-url?
-           identity-fn                    identity
-           prevent-default-when-no-match? (constantly false)}}]
+    :or {processable-url? processable-url?
+         identity-fn identity
+         prevent-default-when-no-match? (constantly false)}}]
 
   (let [history (new-history)
         event-keys (atom nil)]
@@ -120,9 +120,9 @@
                           (if (identity-fn (match-fn next-token))
                             ;; Dispatch!
                             (do
-                              (let [token-effect! (if (-> el .-dataset.pushyReplaceState) ; [:a {:data-pushy-replace-state true}]
-                                                    replace-token!
-                                                    set-token!)]
+                              (let [token-effect! (if (or (not (.hasAttribute el "data-pushy-replace")) (= (.getAttribute el "data-pushy-replace") "false"))
+                                                    set-token!
+                                                    replace-token!)]
                                 (if-let [title (-> el .-title)]
                                   (token-effect! this next-token title)
                                   (token-effect! this next-token)))
