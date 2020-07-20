@@ -10,19 +10,19 @@
 (defn- on-click [funk]
   (events/listen js/document "click" funk))
 
-(defn- update-history! [h]
+(defn- update-history! [^js h]
   (doto h
     (.setUseFragment false)
     (.setPathPrefix "")
     (.setEnabled true)))
 
-(defn- set-retrieve-token! [t]
+(defn- set-retrieve-token! [^js t]
   (set! (.. t -retrieveToken)
         (fn [path-prefix location]
           (str (.-pathname location) (.-search location) (.-hash location))))
   t)
 
-(defn- set-create-url! [t]
+(defn- set-create-url! [^js t]
   (set! (.. t -createUrl)
         (fn [token path-prefix location]
           (str path-prefix token)))
@@ -41,7 +41,7 @@
   (start! [this])
   (stop! [this]))
 
-(defn processable-url? [uri]
+(defn processable-url? [^js uri]
   (and (not (clojure.string/blank? uri))                    ;; Blank URLs are not processable.
        (or (and (not (.hasScheme uri)) (not (.hasDomain uri))) ;; By default only process relative URLs + URLs matching window's origin
            (some? (re-matches (re-pattern (str "^" (.-origin js/location) ".*$"))
@@ -49,7 +49,7 @@
 
 (defn- get-token-from-uri
   "Returns /path?query#fragment from uri"
-  [uri]
+  [^js uri]
   (let [path (.getPath uri)
         query (.getQuery uri)
         fragment (.getFragment uri)]
@@ -70,7 +70,7 @@
          identity-fn identity
          prevent-default-when-no-match? (constantly false)}}]
 
-  (let [history (new-history)
+  (let [^js history (new-history)
         event-keys (atom nil)]
     (reify
       IHistory
@@ -92,7 +92,7 @@
         ;; We want to call `dispatch-fn` on any change to the location
         (swap! event-keys conj
                (events/listen history EventType.NAVIGATE
-                              (fn [e]
+                              (fn [^js e]
                                 (dispatch-fn (.-token e)))))
 
         (swap! event-keys conj
